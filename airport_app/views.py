@@ -8,7 +8,9 @@ from airport_app.models import (
     Airplane,
     Flight,
     Ticket,
-    Order
+    Order,
+    AirplaneType,
+    Crew
 )
 from airport_app.serializers import (
     CountrySerializer,
@@ -18,7 +20,9 @@ from airport_app.serializers import (
     AirplaneSerializer,
     FlightSerializer,
     TicketSerializer,
-    OrderSerializer
+    OrderSerializer,
+    AirplaneTypeSerializer,
+    CrewSerializer
 )
 
 
@@ -32,6 +36,11 @@ class CityViewSet(viewsets.ModelViewSet):
     serializer_class = CitySerializer
 
 
+class CrewViewSet(viewsets.ModelViewSet):
+    queryset = Crew.objects.all()
+    serializer_class = CrewSerializer
+
+
 class AirportViewSet(viewsets.ModelViewSet):
     queryset = Airport.objects.all()
     serializer_class = AirportSerializer
@@ -40,6 +49,11 @@ class AirportViewSet(viewsets.ModelViewSet):
 class RouteViewSet(viewsets.ModelViewSet):
     queryset = Route.objects.all()
     serializer_class = RouteSerializer
+
+
+class AirplaneTypeViewSet(viewsets.ModelViewSet):
+    queryset = AirplaneType.objects.all()
+    serializer_class = AirplaneTypeSerializer
 
 
 class AirplaneViewSet(viewsets.ModelViewSet):
