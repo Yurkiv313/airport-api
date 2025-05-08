@@ -6,8 +6,13 @@ User = get_user_model()
 
 
 class Country(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    code = models.CharField(max_length=3, unique=True)
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=3)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["name", "code"], name="unique_country_name_code")
+        ]
 
     def __str__(self):
         return self.name
@@ -16,6 +21,11 @@ class Country(models.Model):
 class City(models.Model):
     name = models.CharField(max_length=255)
     country = models.ForeignKey(Country, on_delete=models.CASCADE, related_name="cities")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["name", "country"], name="unique_city_per_country")
+        ]
 
     def __str__(self):
         return f"{self.name} - {self.country.code}"
@@ -58,6 +68,17 @@ class Route(models.Model):
     destination = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name="route_to")
     distance = models.PositiveIntegerField()
 
+    def clean(self):
+        if self.source == self.destination:
+            raise ValidationError("Source and destination airports must be different.")
+
+        if self.distance <= 0:
+            raise ValidationError("Distance must be greater than 0 kilometers.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return (
             f"Source: {self.source} "
@@ -67,7 +88,7 @@ class Route(models.Model):
 
 
 class AirplaneType(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
 
     def __str__(self):
         return self.name
@@ -102,6 +123,14 @@ class Flight(models.Model):
     @property
     def duration(self):
         return self.arrival_time - self.departure_time
+
+    def clean(self):
+        if self.arrival_time <= self.departure_time:
+            raise ValidationError("Arrival time must be greater than departure time.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.route} at {self.departure_time.strftime('%Y-%m-%d %H:%M')}"
@@ -138,7 +167,7 @@ class Ticket(models.Model):
             limit = getattr(airplane, limit_attr)
             if not 1 <= value <= limit:
                 raise error_to_raise(
-                    f"{name} must be in range 1:{limit}"
+                    f"Invalid {name} number. It must be between 1 and {limit}."
                 )
 
     def clean(self):

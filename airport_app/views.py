@@ -7,7 +7,6 @@ from airport_app.models import (
     Route,
     Airplane,
     Flight,
-    # Ticket,
     Order,
     AirplaneType,
     Crew
@@ -19,7 +18,6 @@ from airport_app.serializers import (
     RouteSerializer,
     AirplaneSerializer,
     FlightSerializer,
-    # TicketSerializer,
     OrderSerializer,
     AirplaneTypeSerializer,
     CrewSerializer, OrderListSerializer
@@ -64,11 +62,6 @@ class AirplaneViewSet(viewsets.ModelViewSet):
 class FlightViewSet(viewsets.ModelViewSet):
     queryset = Flight.objects.all()
     serializer_class = FlightSerializer
-
-
-# class TicketViewSet(viewsets.ModelViewSet):
-#     queryset = Ticket.objects.all()
-#     serializer_class = TicketSerializer
 
 
 class OrderViewSet(viewsets.ModelViewSet):
