@@ -20,65 +20,118 @@ from airport_app.serializers import (
     FlightSerializer,
     OrderSerializer,
     AirplaneTypeSerializer,
-    CrewSerializer, OrderListSerializer
+    CrewSerializer,
+    OrderRetrieveSerializer,
+    CountryListSerializer,
+    CityListSerializer,
+    CityRetrieveSerializer,
+    CrewListSerializer,
+    AirportListSerializer,
+    RouteListSerializer,
+    RouteRetrieveSerializer,
+    AirplaneListSerializer,
+    AirplaneRetrieveSerializer,
+    FlightListSerializer,
+    FlightRetrieveSerializer,
+    OrderListSerializer
 )
 
 
-class CountryViewSet(viewsets.ModelViewSet):
+class ActionMixin(viewsets.ModelViewSet):
+    action_serializers = {}
+
+    def get_serializer_class(self):
+        if self.action_serializers and self.action in self.action_serializers:
+            return self.action_serializers[self.action]
+        return super().get_serializer_class()
+
+
+class CountryViewSet(ActionMixin):
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
 
+    action_serializers = {
+        "list": CountryListSerializer
+    }
 
-class CityViewSet(viewsets.ModelViewSet):
+
+class CityViewSet(ActionMixin):
     queryset = City.objects.all()
     serializer_class = CitySerializer
 
+    action_serializers = {
+        "list": CityListSerializer,
+        "retrieve": CityRetrieveSerializer
+    }
 
-class CrewViewSet(viewsets.ModelViewSet):
+
+class CrewViewSet(ActionMixin):
     queryset = Crew.objects.all()
     serializer_class = CrewSerializer
 
+    action_serializers = {
+        "list": CrewListSerializer
+    }
 
-class AirportViewSet(viewsets.ModelViewSet):
+
+class AirportViewSet(ActionMixin):
     queryset = Airport.objects.all()
     serializer_class = AirportSerializer
 
+    action_serializers = {
+        "list": AirportListSerializer
+    }
 
-class RouteViewSet(viewsets.ModelViewSet):
+
+class RouteViewSet(ActionMixin):
     queryset = Route.objects.all()
     serializer_class = RouteSerializer
 
+    action_serializers = {
+        "list": RouteListSerializer,
+        "retrieve": RouteRetrieveSerializer
+    }
 
-class AirplaneTypeViewSet(viewsets.ModelViewSet):
+
+class AirplaneTypeViewSet(ActionMixin):
     queryset = AirplaneType.objects.all()
     serializer_class = AirplaneTypeSerializer
 
 
-class AirplaneViewSet(viewsets.ModelViewSet):
+class AirplaneViewSet(ActionMixin):
     queryset = Airplane.objects.all()
     serializer_class = AirplaneSerializer
 
+    action_serializers = {
+        "list": AirplaneListSerializer,
+        "retrieve": AirplaneRetrieveSerializer
+    }
 
-class FlightViewSet(viewsets.ModelViewSet):
+
+class FlightViewSet(ActionMixin):
     queryset = Flight.objects.all()
     serializer_class = FlightSerializer
 
+    action_serializers = {
+        "list": FlightListSerializer,
+        "retrieve": FlightRetrieveSerializer
+    }
 
-class OrderViewSet(viewsets.ModelViewSet):
+
+class OrderViewSet(ActionMixin):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
+
+    action_serializers = {
+        "list": OrderListSerializer,
+        "retrieve": OrderRetrieveSerializer
+    }
 
     def get_queryset(self):
         user = self.request.user
         if user.is_staff:
             return Order.objects.all()
         return Order.objects.filter(user=user)
-
-    def get_serializer_class(self):
-        if self.action == "list":
-            return OrderListSerializer
-
-        return OrderSerializer
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

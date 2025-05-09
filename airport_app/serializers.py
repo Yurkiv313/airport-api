@@ -27,6 +27,12 @@ class CountrySerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer)
         return data
 
 
+class CountryListSerializer(CountrySerializer):
+    class Meta:
+        model = Country
+        fields = ("id", "name")
+
+
 class CitySerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
     class Meta:
         model = City
@@ -40,13 +46,38 @@ class CitySerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
         return data
 
 
+class CityListSerializer(CitySerializer):
+    country = serializers.SlugRelatedField(
+        many=False,
+        read_only=True,
+        slug_field="name"
+    )
+
+
+class CityRetrieveSerializer(CitySerializer):
+    country = CountrySerializer()
+
+
 class CrewSerializer(serializers.ModelSerializer):
+    position = serializers.SerializerMethodField()
+
     class Meta:
         model = Crew
-        fields = ("id", "first_name", "last_name", "position")
+        fields = ("id", "first_name", "last_name", "full_name", "position")
+
+    def get_position(self, obj):
+        return obj.get_position_display()
+
+
+class CrewListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Crew
+        fields = ("id", "full_name", "position")
 
 
 class AirportSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
+    city = CityRetrieveSerializer()
+
     class Meta:
         model = Airport
         fields = ("id", "name", "city")
@@ -57,6 +88,19 @@ class AirportSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer)
             "Airport already exists."
         )
         return data
+
+
+class AirportListSerializer(AirportSerializer):
+    city = serializers.CharField(
+        source="city.name", read_only=True
+    )
+    country_code = serializers.CharField(
+        source="city.country.code", read_only=True
+    )
+
+    class Meta:
+        model = Airport
+        fields = ("id", "name", "city", "country_code")
 
 
 class RouteSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
@@ -74,6 +118,16 @@ class RouteSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
             "Route already exists."
         )
         return data
+
+
+class RouteListSerializer(RouteSerializer):
+    source = serializers.StringRelatedField()
+    destination = serializers.StringRelatedField()
+
+
+class RouteRetrieveSerializer(RouteSerializer):
+    source = AirportListSerializer()
+    destination = AirportListSerializer()
 
 
 class AirplaneTypeSerializer(serializers.ModelSerializer):
@@ -102,6 +156,26 @@ class AirplaneSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer
             "Airplane already exists."
         )
         return data
+
+
+class AirplaneListSerializer(AirplaneSerializer):
+    airplane_type = serializers.CharField(
+        source="airplane_type.name", read_only=True
+    )
+
+    class Meta:
+        model = Airplane
+        fields = (
+            "id",
+            "name",
+            "is_large",
+            "airplane_type"
+        )
+        read_only_fields = ("capacity", "is_large")
+
+
+class AirplaneRetrieveSerializer(AirplaneSerializer):
+    airplane_type = AirplaneTypeSerializer()
 
 
 class FlightSerializer(serializers.ModelSerializer):
@@ -162,6 +236,75 @@ class FlightSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class FlightListSerializer(serializers.ModelSerializer):
+    route = serializers.SerializerMethodField()
+    airplane = serializers.CharField(source="airplane.name", read_only=True)
+
+    class Meta:
+        model = Flight
+        fields = (
+            "id",
+            "route",
+            "airplane",
+            "departure_time",
+            "arrival_time",
+            "duration",
+            "is_active"
+        )
+        read_only_fields = ("duration", "is_active")
+
+    def get_route(self, obj):
+        return {
+            "source": obj.route.source.name,
+            "destination": obj.route.destination.name,
+            "distance": f"{obj.route.distance} km"
+        }
+
+
+class FlightRetrieveSerializer(serializers.ModelSerializer):
+    route = serializers.SerializerMethodField()
+    airplane = AirplaneRetrieveSerializer()
+    crew = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Flight
+        fields = (
+            "id",
+            "route",
+            "airplane",
+            "departure_time",
+            "arrival_time",
+            "duration",
+            "crew",
+            "is_active"
+        )
+        read_only_fields = ("duration", "is_active")
+
+    def get_route(self, obj):
+        return {
+            "source": {
+                "name": obj.route.source.name,
+                "city": obj.route.source.city.name,
+                "country": obj.route.source.city.country.name
+            },
+            "destination": {
+                "name": obj.route.destination.name,
+                "city": obj.route.destination.city.name,
+                "country": obj.route.destination.city.country.name
+            },
+            "distance": f"{obj.route.distance} km"
+        }
+
+    def get_crew(self, obj):
+        return [
+            {
+                "full_name": member.full_name,
+                "position": member.get_position_display()
+            }
+            for member in obj.crew.all()
+        ]
+
+
 class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
@@ -215,5 +358,50 @@ class OrderSerializer(serializers.ModelSerializer):
             return order
 
 
-class OrderListSerializer(OrderSerializer):
-    tickets = TicketSerializer(many=True, read_only=True)
+class OrderListSerializer(serializers.ModelSerializer):
+    tickets = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = ("id", "created_at", "tickets", "user")
+
+    def get_tickets(self, obj):
+        return [
+            {
+                "row": ticket.row,
+                "seat": ticket.seat,
+                "from": ticket.flight.route.source.city.country.name,
+                "to": ticket.flight.route.destination.city.country.name
+            }
+            for ticket in obj.tickets.all()
+        ]
+
+
+class OrderRetrieveSerializer(serializers.ModelSerializer):
+    tickets = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = ("id", "created_at", "user", "tickets")
+
+    def get_tickets(self, obj):
+        return [
+            {
+                "row": ticket.row,
+                "seat": ticket.seat,
+                "route": {
+                    "from": ticket.flight.route.source.city.country.name,
+                    "to": ticket.flight.route.destination.city.country.name,
+                    "source": ticket.flight.route.source.name,
+                    "destination": ticket.flight.route.destination.name,
+                    "distance": f"{ticket.flight.route.distance} km"
+                },
+                "flight": {
+                    "departure_time": ticket.flight.departure_time,
+                    "arrival_time": ticket.flight.arrival_time,
+                    "duration": ticket.flight.duration,
+                    "airplane": ticket.flight.airplane.name
+                }
+            }
+            for ticket in obj.tickets.all()
+        ]
