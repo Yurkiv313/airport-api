@@ -1,4 +1,8 @@
+from django.db.models import Value, CharField
+from django.db.models.functions import Concat
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
+from rest_framework.filters import SearchFilter
 
 from airport_app.models import (
     Country,
@@ -33,7 +37,9 @@ from airport_app.serializers import (
     AirplaneRetrieveSerializer,
     FlightListSerializer,
     FlightRetrieveSerializer,
-    OrderListSerializer
+    OrderListSerializer,
+    CrewRetrieveSerializer,
+    AirportRetrieveSerializer
 )
 
 
@@ -49,6 +55,8 @@ class ActionMixin(viewsets.ModelViewSet):
 class CountryViewSet(ActionMixin):
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
+    filter_backends = [SearchFilter]
+    search_fields = ["name"]
 
     action_serializers = {
         "list": CountryListSerializer
@@ -56,8 +64,11 @@ class CountryViewSet(ActionMixin):
 
 
 class CityViewSet(ActionMixin):
-    queryset = City.objects.all()
+    queryset = City.objects.select_related("country")
     serializer_class = CitySerializer
+    filter_backends = [SearchFilter, DjangoFilterBackend]
+    filterset_fields = ['country']
+    search_fields = ["name"]
 
     action_serializers = {
         "list": CityListSerializer,
@@ -68,24 +79,52 @@ class CityViewSet(ActionMixin):
 class CrewViewSet(ActionMixin):
     queryset = Crew.objects.all()
     serializer_class = CrewSerializer
+    filter_backends = [SearchFilter, DjangoFilterBackend]
+    filterset_fields = ["position"]
+    search_fields = ["search_full_name"]
 
     action_serializers = {
-        "list": CrewListSerializer
+        "list": CrewListSerializer,
+        "retrieve": CrewRetrieveSerializer
     }
+
+    def get_queryset(self):
+        return Crew.objects.annotate(
+            search_full_name=Concat(
+                "first_name",
+                Value(" "),
+                "last_name",
+                output_field=CharField()
+            )
+        )
 
 
 class AirportViewSet(ActionMixin):
-    queryset = Airport.objects.all()
+    queryset = Airport.objects.select_related("city", "city__country")
     serializer_class = AirportSerializer
+    filter_backends = [SearchFilter, DjangoFilterBackend]
+    filterset_fields = ['city', "city__country"]
+    search_fields = ["name"]
 
     action_serializers = {
-        "list": AirportListSerializer
+        "list": AirportListSerializer,
+        "retrieve": AirportRetrieveSerializer
     }
 
 
 class RouteViewSet(ActionMixin):
-    queryset = Route.objects.all()
+    queryset = Route.objects.select_related(
+        "source",
+        "source__city",
+        "source__city__country",
+        "destination",
+        "destination__city",
+        "destination__city__country"
+    )
     serializer_class = RouteSerializer
+    filter_backends = [SearchFilter, DjangoFilterBackend]
+    filterset_fields = ['source', "destination"]
+    search_fields = ["source__name", "destination__name"]
 
     action_serializers = {
         "list": RouteListSerializer,
@@ -96,11 +135,16 @@ class RouteViewSet(ActionMixin):
 class AirplaneTypeViewSet(ActionMixin):
     queryset = AirplaneType.objects.all()
     serializer_class = AirplaneTypeSerializer
+    filter_backends = [SearchFilter]
+    search_fields = ["name"]
 
 
 class AirplaneViewSet(ActionMixin):
-    queryset = Airplane.objects.all()
+    queryset = Airplane.objects.select_related("airplane_type")
     serializer_class = AirplaneSerializer
+    filter_backends = [SearchFilter, DjangoFilterBackend]
+    filterset_fields = ["airplane_type"]
+    search_fields = ["name"]
 
     action_serializers = {
         "list": AirplaneListSerializer,
@@ -109,8 +153,19 @@ class AirplaneViewSet(ActionMixin):
 
 
 class FlightViewSet(ActionMixin):
-    queryset = Flight.objects.all()
+    queryset = Flight.objects.select_related(
+        "route__source",
+        "route__destination",
+        "route__source__city",
+        "route__destination__city",
+        "route__source__city__country",
+        "route__destination__city__country",
+        "airplane"
+    ).prefetch_related("crew")
     serializer_class = FlightSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ["route", "airplane", "is_active", "departure_time", "arrival_time"]
+    search_fields = ["route__source__name", "route__destination__name"]
 
     action_serializers = {
         "list": FlightListSerializer,
@@ -119,7 +174,7 @@ class FlightViewSet(ActionMixin):
 
 
 class OrderViewSet(ActionMixin):
-    queryset = Order.objects.all()
+    queryset = Order.objects.prefetch_related("tickets")
     serializer_class = OrderSerializer
 
     action_serializers = {

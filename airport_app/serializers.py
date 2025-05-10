@@ -59,14 +59,9 @@ class CityRetrieveSerializer(CitySerializer):
 
 
 class CrewSerializer(serializers.ModelSerializer):
-    position = serializers.SerializerMethodField()
-
     class Meta:
         model = Crew
         fields = ("id", "first_name", "last_name", "full_name", "position")
-
-    def get_position(self, obj):
-        return obj.get_position_display()
 
 
 class CrewListSerializer(serializers.ModelSerializer):
@@ -75,8 +70,14 @@ class CrewListSerializer(serializers.ModelSerializer):
         fields = ("id", "full_name", "position")
 
 
+class CrewRetrieveSerializer(CrewSerializer):
+    position = serializers.SerializerMethodField()
+
+    def get_position(self, obj):
+        return obj.get_position_display()
+
+
 class AirportSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
-    city = CityRetrieveSerializer()
 
     class Meta:
         model = Airport
@@ -101,6 +102,10 @@ class AirportListSerializer(AirportSerializer):
     class Meta:
         model = Airport
         fields = ("id", "name", "city", "country_code")
+
+
+class AirportRetrieveSerializer(AirportSerializer):
+    city = CityRetrieveSerializer()
 
 
 class RouteSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
