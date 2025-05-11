@@ -1,9 +1,11 @@
 from django.db.models import Value, CharField
 from django.db.models.functions import Concat
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny
+from rest_framework.response import Response
 
 from airport_app.models import (
     Country,
@@ -40,7 +42,7 @@ from airport_app.serializers import (
     FlightRetrieveSerializer,
     OrderListSerializer,
     CrewRetrieveSerializer,
-    AirportRetrieveSerializer,
+    AirportRetrieveSerializer, AirplaneImageSerializer,
 )
 
 
@@ -57,10 +59,10 @@ class CustomPermissionMixin(viewsets.ModelViewSet):
     action_permissions = {}
 
     def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
+        if self.action in ["create", "update", "partial_update", "destroy", "upload_image"]:
             if (
-                self.__class__.__name__ == "OrderViewSet"
-                and self.action == "create"
+                    self.__class__.__name__ == "OrderViewSet"
+                    and self.action == "create"
             ):
                 return [IsAuthenticated()]
             return [IsAdminUser()]
@@ -198,12 +200,27 @@ class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
     action_serializers = {
         "list": AirplaneListSerializer,
         "retrieve": AirplaneRetrieveSerializer,
+        "upload_image": AirplaneImageSerializer
     }
 
     action_permissions = {
         "list": [IsAdminUser],
         "retrieve": [IsAdminUser],
     }
+
+    @action(
+        methods=["POST"],
+        detail=True,
+        permission_classes=[IsAdminUser],
+        url_path="upload-image"
+    )
+    def upload_image(self, request, pk=None):
+        bus = self.get_object()
+        serializer = self.get_serializer(bus, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class FlightViewSet(ActionMixin, CustomPermissionMixin):

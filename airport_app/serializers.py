@@ -17,7 +17,7 @@ from airport_app.models import (
 
 class UniqueFieldsValidatorMixin:
     def validate_unique_fields(
-        self, model, unique_fields: dict, message: str
+            self, model, unique_fields: dict, message: str
     ):
         if model.objects.filter(**unique_fields).exists():
             raise serializers.ValidationError(message)
@@ -196,12 +196,18 @@ class AirplaneListSerializer(AirplaneSerializer):
 
     class Meta:
         model = Airplane
-        fields = ("id", "name", "is_large", "airplane_type")
+        fields = ("id", "name", "is_large", "airplane_type", "image")
         read_only_fields = ("capacity", "is_large")
 
 
 class AirplaneRetrieveSerializer(AirplaneSerializer):
     airplane_type = AirplaneTypeSerializer()
+
+
+class AirplaneImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Airplane
+        fields = ("id", "image")
 
 
 class FlightSerializer(serializers.ModelSerializer):
