@@ -1,28 +1,45 @@
 from django.db import transaction
 from rest_framework import serializers
 from django.core.exceptions import ValidationError as DRFValidationError
-from airport_app.models import Country, City, Crew, Route, AirplaneType, Airplane, Flight, Ticket, Order, Airport
+from airport_app.models import (
+    Country,
+    City,
+    Crew,
+    Route,
+    AirplaneType,
+    Airplane,
+    Flight,
+    Ticket,
+    Order,
+    Airport,
+)
 
 
 class UniqueFieldsValidatorMixin:
-    def validate_unique_fields(self, model, unique_fields: dict, message: str):
+    def validate_unique_fields(
+        self, model, unique_fields: dict, message: str
+    ):
         if model.objects.filter(**unique_fields).exists():
             raise serializers.ValidationError(message)
 
 
-class CountrySerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
+class CountrySerializer(
+    UniqueFieldsValidatorMixin, serializers.ModelSerializer
+):
     class Meta:
         model = Country
         fields = ("id", "name", "code")
 
     def validate(self, data):
         self.validate_unique_fields(
-            Country, {"name": data["name"]},
-            "Country with this name or code already exists."
+            Country,
+            {"name": data["name"]},
+            "Country with this name or code already exists.",
         )
         self.validate_unique_fields(
-            Country, {"code": data["code"]},
-            "Country with this code already exists."
+            Country,
+            {"code": data["code"]},
+            "Country with this code already exists.",
         )
         return data
 
@@ -40,17 +57,16 @@ class CitySerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
 
     def validate(self, data):
         self.validate_unique_fields(
-            City, {"name": data["name"], "country": data["country"]},
-            "City already exists."
+            City,
+            {"name": data["name"], "country": data["country"]},
+            "City already exists.",
         )
         return data
 
 
 class CityListSerializer(CitySerializer):
     country = serializers.SlugRelatedField(
-        many=False,
-        read_only=True,
-        slug_field="name"
+        many=False, read_only=True, slug_field="name"
     )
 
 
@@ -77,24 +93,24 @@ class CrewRetrieveSerializer(CrewSerializer):
         return obj.get_position_display()
 
 
-class AirportSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
-
+class AirportSerializer(
+    UniqueFieldsValidatorMixin, serializers.ModelSerializer
+):
     class Meta:
         model = Airport
         fields = ("id", "name", "city")
 
     def validate(self, data):
         self.validate_unique_fields(
-            Airport, {"name": data["name"], "city": data["city"]},
-            "Airport already exists."
+            Airport,
+            {"name": data["name"], "city": data["city"]},
+            "Airport already exists.",
         )
         return data
 
 
 class AirportListSerializer(AirportSerializer):
-    city = serializers.CharField(
-        source="city.name", read_only=True
-    )
+    city = serializers.CharField(source="city.name", read_only=True)
     country_code = serializers.CharField(
         source="city.country.code", read_only=True
     )
@@ -108,19 +124,26 @@ class AirportRetrieveSerializer(AirportSerializer):
     city = CityRetrieveSerializer()
 
 
-class RouteSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
+class RouteSerializer(
+    UniqueFieldsValidatorMixin, serializers.ModelSerializer
+):
     class Meta:
         model = Route
         fields = ("id", "source", "destination", "distance")
 
     def validate(self, data):
         if data["source"] == data["destination"]:
-            raise serializers.ValidationError("Source and destination airports must be different.")
+            raise serializers.ValidationError(
+                "Source and destination airports must be different."
+            )
         elif data["distance"] <= 0:
-            raise serializers.ValidationError("Distance must be greater than 0 kilometers.")
+            raise serializers.ValidationError(
+                "Distance must be greater than 0 kilometers."
+            )
         self.validate_unique_fields(
-            Route, {"source": data["source"], "destination": data["destination"]},
-            "Route already exists."
+            Route,
+            {"source": data["source"], "destination": data["destination"]},
+            "Route already exists.",
         )
         return data
 
@@ -141,7 +164,9 @@ class AirplaneTypeSerializer(serializers.ModelSerializer):
         fields = ("id", "name")
 
 
-class AirplaneSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
+class AirplaneSerializer(
+    UniqueFieldsValidatorMixin, serializers.ModelSerializer
+):
     class Meta:
         model = Airplane
         fields = (
@@ -151,14 +176,15 @@ class AirplaneSerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer
             "seats_in_row",
             "capacity",
             "is_large",
-            "airplane_type"
+            "airplane_type",
         )
         read_only_fields = ("capacity", "is_large")
 
     def validate(self, data):
         self.validate_unique_fields(
-            Airplane, {"name": data["name"], "airplane_type": data["airplane_type"]},
-            "Airplane already exists."
+            Airplane,
+            {"name": data["name"], "airplane_type": data["airplane_type"]},
+            "Airplane already exists.",
         )
         return data
 
@@ -170,12 +196,7 @@ class AirplaneListSerializer(AirplaneSerializer):
 
     class Meta:
         model = Airplane
-        fields = (
-            "id",
-            "name",
-            "is_large",
-            "airplane_type"
-        )
+        fields = ("id", "name", "is_large", "airplane_type")
         read_only_fields = ("capacity", "is_large")
 
 
@@ -194,7 +215,7 @@ class FlightSerializer(serializers.ModelSerializer):
             "arrival_time",
             "crew",
             "duration",
-            "is_active"
+            "is_active",
         )
         read_only_fields = ("duration", "is_active")
 
@@ -204,20 +225,34 @@ class FlightSerializer(serializers.ModelSerializer):
         airplane = attrs.get("airplane")
 
         if arrival <= departure:
-            raise serializers.ValidationError("Arrival time must be later than the departure time.")
+            raise serializers.ValidationError(
+                "Arrival time must be later than the departure time."
+            )
 
         crew = attrs.get("crew")
         if not crew:
             raise serializers.ValidationError("Crew is required.")
 
-        main_pilots = [member for member in crew if member.position == Crew.Position.MAIN_PILOT]
-        stewardesses = [member for member in crew if member.position == Crew.Position.STEWARDESS]
+        main_pilots = [
+            member
+            for member in crew
+            if member.position == Crew.Position.MAIN_PILOT
+        ]
+        stewardesses = [
+            member
+            for member in crew
+            if member.position == Crew.Position.STEWARDESS
+        ]
 
         if not main_pilots:
-            raise serializers.ValidationError("The crew must include at least one main pilot.")
+            raise serializers.ValidationError(
+                "The crew must include at least one main pilot."
+            )
 
         if not stewardesses:
-            raise serializers.ValidationError("The crew must include at least one stewardess.")
+            raise serializers.ValidationError(
+                "The crew must include at least one stewardess."
+            )
 
         current_id = self.instance.id if self.instance else None
 
@@ -254,7 +289,7 @@ class FlightListSerializer(serializers.ModelSerializer):
             "departure_time",
             "arrival_time",
             "duration",
-            "is_active"
+            "is_active",
         )
         read_only_fields = ("duration", "is_active")
 
@@ -262,7 +297,7 @@ class FlightListSerializer(serializers.ModelSerializer):
         return {
             "source": obj.route.source.name,
             "destination": obj.route.destination.name,
-            "distance": f"{obj.route.distance} km"
+            "distance": f"{obj.route.distance} km",
         }
 
 
@@ -281,7 +316,7 @@ class FlightRetrieveSerializer(serializers.ModelSerializer):
             "arrival_time",
             "duration",
             "crew",
-            "is_active"
+            "is_active",
         )
         read_only_fields = ("duration", "is_active")
 
@@ -290,21 +325,21 @@ class FlightRetrieveSerializer(serializers.ModelSerializer):
             "source": {
                 "name": obj.route.source.name,
                 "city": obj.route.source.city.name,
-                "country": obj.route.source.city.country.name
+                "country": obj.route.source.city.country.name,
             },
             "destination": {
                 "name": obj.route.destination.name,
                 "city": obj.route.destination.city.name,
-                "country": obj.route.destination.city.country.name
+                "country": obj.route.destination.city.country.name,
             },
-            "distance": f"{obj.route.distance} km"
+            "distance": f"{obj.route.distance} km",
         }
 
     def get_crew(self, obj):
         return [
             {
                 "full_name": member.full_name,
-                "position": member.get_position_display()
+                "position": member.get_position_display(),
             }
             for member in obj.crew.all()
         ]
@@ -328,15 +363,12 @@ class TicketSerializer(serializers.ModelSerializer):
         flight = attrs.get("flight")
 
         if row is None or seat is None or flight is None:
-            raise serializers.ValidationError("Row, seat, and flight are required.")
+            raise serializers.ValidationError(
+                "Row, seat, and flight are required."
+            )
 
         airplane = flight.airplane
-        Ticket.validate_ticket(
-            row,
-            seat,
-            airplane,
-            DRFValidationError
-        )
+        Ticket.validate_ticket(row, seat, airplane, DRFValidationError)
 
         return data
 
@@ -346,12 +378,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = (
-            "id",
-            "created_at",
-            "tickets",
-            "user"
-        )
+        fields = ("id", "created_at", "tickets", "user")
         read_only_fields = ("user",)
 
     def create(self, validated_data):
@@ -376,7 +403,7 @@ class OrderListSerializer(serializers.ModelSerializer):
                 "row": ticket.row,
                 "seat": ticket.seat,
                 "from": ticket.flight.route.source.city.country.name,
-                "to": ticket.flight.route.destination.city.country.name
+                "to": ticket.flight.route.destination.city.country.name,
             }
             for ticket in obj.tickets.all()
         ]
@@ -399,14 +426,14 @@ class OrderRetrieveSerializer(serializers.ModelSerializer):
                     "to": ticket.flight.route.destination.city.country.name,
                     "source": ticket.flight.route.source.name,
                     "destination": ticket.flight.route.destination.name,
-                    "distance": f"{ticket.flight.route.distance} km"
+                    "distance": f"{ticket.flight.route.distance} km",
                 },
                 "flight": {
                     "departure_time": ticket.flight.departure_time,
                     "arrival_time": ticket.flight.arrival_time,
                     "duration": ticket.flight.duration,
-                    "airplane": ticket.flight.airplane.name
-                }
+                    "airplane": ticket.flight.airplane.name,
+                },
             }
             for ticket in obj.tickets.all()
         ]

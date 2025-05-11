@@ -3,6 +3,7 @@ from django.db.models.functions import Concat
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.filters import SearchFilter
+from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny
 
 from airport_app.models import (
     Country,
@@ -13,7 +14,7 @@ from airport_app.models import (
     Flight,
     Order,
     AirplaneType,
-    Crew
+    Crew,
 )
 from airport_app.serializers import (
     CountrySerializer,
@@ -39,7 +40,7 @@ from airport_app.serializers import (
     FlightRetrieveSerializer,
     OrderListSerializer,
     CrewRetrieveSerializer,
-    AirportRetrieveSerializer
+    AirportRetrieveSerializer,
 )
 
 
@@ -52,31 +53,59 @@ class ActionMixin(viewsets.ModelViewSet):
         return super().get_serializer_class()
 
 
-class CountryViewSet(ActionMixin):
+class CustomPermissionMixin(viewsets.ModelViewSet):
+    action_permissions = {}
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            if (
+                self.__class__.__name__ == "OrderViewSet"
+                and self.action == "create"
+            ):
+                return [IsAuthenticated()]
+            return [IsAdminUser()]
+
+        return [
+            permission()
+            for permission in self.action_permissions.get(
+                self.action, [IsAdminUser]
+            )
+        ]
+
+
+class CountryViewSet(ActionMixin, CustomPermissionMixin):
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
     filter_backends = [SearchFilter]
     search_fields = ["name"]
 
-    action_serializers = {
-        "list": CountryListSerializer
+    action_serializers = {"list": CountryListSerializer}
+
+    action_permissions = {
+        "list": [IsAuthenticated],
+        "retrieve": [IsAuthenticated],
     }
 
 
-class CityViewSet(ActionMixin):
+class CityViewSet(ActionMixin, CustomPermissionMixin):
     queryset = City.objects.select_related("country")
     serializer_class = CitySerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
-    filterset_fields = ['country']
+    filterset_fields = ["country"]
     search_fields = ["name"]
 
     action_serializers = {
         "list": CityListSerializer,
-        "retrieve": CityRetrieveSerializer
+        "retrieve": CityRetrieveSerializer,
+    }
+
+    action_permissions = {
+        "list": [IsAuthenticated],
+        "retrieve": [IsAuthenticated],
     }
 
 
-class CrewViewSet(ActionMixin):
+class CrewViewSet(ActionMixin, CustomPermissionMixin):
     queryset = Crew.objects.all()
     serializer_class = CrewSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
@@ -85,7 +114,12 @@ class CrewViewSet(ActionMixin):
 
     action_serializers = {
         "list": CrewListSerializer,
-        "retrieve": CrewRetrieveSerializer
+        "retrieve": CrewRetrieveSerializer,
+    }
+
+    action_permissions = {
+        "list": [IsAdminUser],
+        "retrieve": [IsAdminUser],
     }
 
     def get_queryset(self):
@@ -94,52 +128,67 @@ class CrewViewSet(ActionMixin):
                 "first_name",
                 Value(" "),
                 "last_name",
-                output_field=CharField()
+                output_field=CharField(),
             )
         )
 
 
-class AirportViewSet(ActionMixin):
+class AirportViewSet(ActionMixin, CustomPermissionMixin):
     queryset = Airport.objects.select_related("city", "city__country")
     serializer_class = AirportSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
-    filterset_fields = ['city', "city__country"]
+    filterset_fields = ["city", "city__country"]
     search_fields = ["name"]
 
     action_serializers = {
         "list": AirportListSerializer,
-        "retrieve": AirportRetrieveSerializer
+        "retrieve": AirportRetrieveSerializer,
+    }
+
+    action_permissions = {
+        "list": [IsAuthenticated],
+        "retrieve": [IsAuthenticated],
     }
 
 
-class RouteViewSet(ActionMixin):
+class RouteViewSet(ActionMixin, CustomPermissionMixin):
     queryset = Route.objects.select_related(
         "source",
         "source__city",
         "source__city__country",
         "destination",
         "destination__city",
-        "destination__city__country"
+        "destination__city__country",
     )
     serializer_class = RouteSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
-    filterset_fields = ['source', "destination"]
+    filterset_fields = ["source", "destination"]
     search_fields = ["source__name", "destination__name"]
 
     action_serializers = {
         "list": RouteListSerializer,
-        "retrieve": RouteRetrieveSerializer
+        "retrieve": RouteRetrieveSerializer,
+    }
+
+    action_permissions = {
+        "list": [IsAuthenticated],
+        "retrieve": [IsAuthenticated],
     }
 
 
-class AirplaneTypeViewSet(ActionMixin):
+class AirplaneTypeViewSet(ActionMixin, CustomPermissionMixin):
     queryset = AirplaneType.objects.all()
     serializer_class = AirplaneTypeSerializer
     filter_backends = [SearchFilter]
     search_fields = ["name"]
 
+    action_permissions = {
+        "list": [IsAdminUser],
+        "retrieve": [IsAdminUser],
+    }
 
-class AirplaneViewSet(ActionMixin):
+
+class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
     queryset = Airplane.objects.select_related("airplane_type")
     serializer_class = AirplaneSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
@@ -148,11 +197,16 @@ class AirplaneViewSet(ActionMixin):
 
     action_serializers = {
         "list": AirplaneListSerializer,
-        "retrieve": AirplaneRetrieveSerializer
+        "retrieve": AirplaneRetrieveSerializer,
+    }
+
+    action_permissions = {
+        "list": [IsAdminUser],
+        "retrieve": [IsAdminUser],
     }
 
 
-class FlightViewSet(ActionMixin):
+class FlightViewSet(ActionMixin, CustomPermissionMixin):
     queryset = Flight.objects.select_related(
         "route__source",
         "route__destination",
@@ -160,26 +214,42 @@ class FlightViewSet(ActionMixin):
         "route__destination__city",
         "route__source__city__country",
         "route__destination__city__country",
-        "airplane"
+        "airplane",
     ).prefetch_related("crew")
     serializer_class = FlightSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ["route", "airplane", "is_active", "departure_time", "arrival_time"]
+    filterset_fields = [
+        "route",
+        "airplane",
+        "is_active",
+        "departure_time",
+        "arrival_time",
+    ]
     search_fields = ["route__source__name", "route__destination__name"]
 
     action_serializers = {
         "list": FlightListSerializer,
-        "retrieve": FlightRetrieveSerializer
+        "retrieve": FlightRetrieveSerializer,
+    }
+    action_permissions = {
+        "list": [AllowAny],
+        "retrieve": [AllowAny],
     }
 
 
-class OrderViewSet(ActionMixin):
+class OrderViewSet(ActionMixin, CustomPermissionMixin):
     queryset = Order.objects.prefetch_related("tickets")
     serializer_class = OrderSerializer
 
     action_serializers = {
         "list": OrderListSerializer,
-        "retrieve": OrderRetrieveSerializer
+        "retrieve": OrderRetrieveSerializer,
+    }
+
+    action_permissions = {
+        "list": [IsAuthenticated],
+        "retrieve": [IsAuthenticated],
+        "create": [IsAuthenticated],
     }
 
     def get_queryset(self):

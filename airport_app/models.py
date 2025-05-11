@@ -11,7 +11,9 @@ class Country(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["name", "code"], name="unique_country_name_code")
+            models.UniqueConstraint(
+                fields=["name", "code"], name="unique_country_name_code"
+            )
         ]
 
     def __str__(self):
@@ -20,11 +22,15 @@ class Country(models.Model):
 
 class City(models.Model):
     name = models.CharField(max_length=255)
-    country = models.ForeignKey(Country, on_delete=models.CASCADE, related_name="cities")
+    country = models.ForeignKey(
+        Country, on_delete=models.CASCADE, related_name="cities"
+    )
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["name", "country"], name="unique_city_per_country")
+            models.UniqueConstraint(
+                fields=["name", "country"], name="unique_city_per_country"
+            )
         ]
 
     def __str__(self):
@@ -57,23 +63,33 @@ class Crew(models.Model):
 
 class Airport(models.Model):
     name = models.CharField(max_length=100)
-    city = models.ForeignKey(City, on_delete=models.CASCADE, related_name="airports")
+    city = models.ForeignKey(
+        City, on_delete=models.CASCADE, related_name="airports"
+    )
 
     def __str__(self):
         return f"{self.name} ({self.city})"
 
 
 class Route(models.Model):
-    source = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name="route_from")
-    destination = models.ForeignKey(Airport, on_delete=models.CASCADE, related_name="route_to")
+    source = models.ForeignKey(
+        Airport, on_delete=models.CASCADE, related_name="route_from"
+    )
+    destination = models.ForeignKey(
+        Airport, on_delete=models.CASCADE, related_name="route_to"
+    )
     distance = models.PositiveIntegerField()
 
     def clean(self):
         if self.source == self.destination:
-            raise ValidationError("Source and destination airports must be different.")
+            raise ValidationError(
+                "Source and destination airports must be different."
+            )
 
         if self.distance <= 0:
-            raise ValidationError("Distance must be greater than 0 kilometers.")
+            raise ValidationError(
+                "Distance must be greater than 0 kilometers."
+            )
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -98,7 +114,9 @@ class Airplane(models.Model):
     name = models.CharField(max_length=255)
     rows = models.PositiveIntegerField()
     seats_in_row = models.PositiveIntegerField()
-    airplane_type = models.ForeignKey(AirplaneType, on_delete=models.CASCADE, related_name="airplanes")
+    airplane_type = models.ForeignKey(
+        AirplaneType, on_delete=models.CASCADE, related_name="airplanes"
+    )
 
     @property
     def capacity(self):
@@ -113,8 +131,12 @@ class Airplane(models.Model):
 
 
 class Flight(models.Model):
-    route = models.ForeignKey(Route, on_delete=models.CASCADE, related_name="flights")
-    airplane = models.ForeignKey(Airplane, on_delete=models.CASCADE, related_name="flights")
+    route = models.ForeignKey(
+        Route, on_delete=models.CASCADE, related_name="flights"
+    )
+    airplane = models.ForeignKey(
+        Airplane, on_delete=models.CASCADE, related_name="flights"
+    )
     departure_time = models.DateTimeField()
     arrival_time = models.DateTimeField()
     crew = models.ManyToManyField("Crew", related_name="flights")
@@ -126,7 +148,9 @@ class Flight(models.Model):
 
     def clean(self):
         if self.arrival_time <= self.departure_time:
-            raise ValidationError("Arrival time must be greater than departure time.")
+            raise ValidationError(
+                "Arrival time must be greater than departure time."
+            )
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -138,7 +162,9 @@ class Flight(models.Model):
 
 class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="orders"
+    )
 
     def __str__(self):
         return f"Order by {self.user} at {self.created_at.strftime('%Y-%m-%d %H:%M')}"
@@ -147,14 +173,18 @@ class Order(models.Model):
 class Ticket(models.Model):
     row = models.PositiveIntegerField()
     seat = models.PositiveIntegerField()
-    flight = models.ForeignKey(Flight, on_delete=models.CASCADE, related_name="tickets")
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="tickets")
+    flight = models.ForeignKey(
+        Flight, on_delete=models.CASCADE, related_name="tickets"
+    )
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="tickets"
+    )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=["row", "seat", "flight"],
-                name="unique_seat_per_flight"
+                name="unique_seat_per_flight",
             )
         ]
 
@@ -162,7 +192,7 @@ class Ticket(models.Model):
     def validate_ticket(row, seat, airplane, error_to_raise):
         for value, name, limit_attr in [
             (row, "row", "rows"),
-            (seat, "seat", "seats_in_row")
+            (seat, "seat", "seats_in_row"),
         ]:
             limit = getattr(airplane, limit_attr)
             if not 1 <= value <= limit:
@@ -172,10 +202,7 @@ class Ticket(models.Model):
 
     def clean(self):
         Ticket.validate_ticket(
-            self.row,
-            self.seat,
-            self.flight.airplane,
-            ValidationError
+            self.row, self.seat, self.flight.airplane, ValidationError
         )
 
     def save(self, *args, **kwargs):
