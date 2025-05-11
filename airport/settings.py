@@ -111,7 +111,9 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend'
-    ]
+    ],
+    "DEFAULT_PAGINATION_CLASS": "airport_app.pagination.CustomPageNumberPagination",
+    "PAGE_SIZE": 5,
 }
 
 # Internationalization
