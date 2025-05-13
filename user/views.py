@@ -1,8 +1,12 @@
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 
+from airport_app.models import Flight
 from user.serializers import UserSerializer
 
 
@@ -53,3 +57,19 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
     )
     def put(self, request, *args, **kwargs):
         return super().put(request, *args, **kwargs)
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        Flight.objects.filter(
+            is_active=True,
+            departure_time__lt=timezone.now()
+        ).update(is_active=False)
+
+        return data
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 from django.core.exceptions import ValidationError as DRFValidationError
 from airport_app.models import (
@@ -405,6 +406,11 @@ class TicketSerializer(serializers.ModelSerializer):
         row = attrs.get("row")
         seat = attrs.get("seat")
         flight = attrs.get("flight")
+
+        if flight.departure_time < timezone.now():
+            raise serializers.ValidationError(
+                "You can't take a ticket for a departed flight."
+            )
 
         if row is None or seat is None or flight is None:
             raise serializers.ValidationError(
