@@ -115,7 +115,10 @@ class AirplaneType(models.Model):
 
 
 def airplane_image_path(instance, filename) -> pathlib.Path:
-    filename = f"{slugify(instance.name)}-{uuid.uuid4()}" + pathlib.Path(filename).suffix
+    filename = (
+        f"{slugify(instance.name)}-{uuid.uuid4()}"
+        + pathlib.Path(filename).suffix
+    )
     return pathlib.Path("upload/airplanes/") / pathlib.Path(filename)
 
 
@@ -167,7 +170,10 @@ class Flight(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.route} at {self.departure_time.strftime('%Y-%m-%d %H:%M')}"
+        return (
+            f"{self.route} "
+            f"at {self.departure_time.strftime('%Y-%m-%d %H:%M')}"
+        )
 
 
 class Order(models.Model):
@@ -177,7 +183,10 @@ class Order(models.Model):
     )
 
     def __str__(self):
-        return f"Order by {self.user} at {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+        return (
+            f"Order by {self.user} "
+            f"at {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+        )
 
 
 class Ticket(models.Model):

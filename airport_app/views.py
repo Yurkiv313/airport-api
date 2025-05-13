@@ -44,7 +44,8 @@ from airport_app.serializers import (
     FlightRetrieveSerializer,
     OrderListSerializer,
     CrewRetrieveSerializer,
-    AirportRetrieveSerializer, AirplaneImageSerializer,
+    AirportRetrieveSerializer,
+    AirplaneImageSerializer,
 )
 
 
@@ -52,7 +53,10 @@ class ActionMixin(viewsets.ModelViewSet):
     action_serializers = {}
 
     def get_serializer_class(self):
-        if self.action_serializers and self.action in self.action_serializers:
+        if (
+            self.action_serializers
+            and self.action in self.action_serializers
+        ):
             return self.action_serializers[self.action]
         return super().get_serializer_class()
 
@@ -61,10 +65,16 @@ class CustomPermissionMixin(viewsets.ModelViewSet):
     action_permissions = {}
 
     def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy", "upload_image"]:
+        if self.action in [
+            "create",
+            "update",
+            "partial_update",
+            "destroy",
+            "upload_image",
+        ]:
             if (
-                    self.__class__.__name__ == "OrderViewSet"
-                    and self.action == "create"
+                self.__class__.__name__ == "OrderViewSet"
+                and self.action == "create"
             ):
                 return [IsAuthenticated()]
             return [IsAdminUser()]
@@ -104,7 +114,7 @@ class CountryViewSet(ActionMixin, CustomPermissionMixin):
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
                 description="Search countries by name (case-insensitive)"
-                            " Examples: Ukraine, Ger",
+                " Examples: Ukraine, Ger",
             ),
         ],
         responses={200: CountryListSerializer(many=True)},
@@ -122,7 +132,8 @@ class CountryViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Create a country",
-        description="Admins only. Create a new country with a unique name and code.",
+        description="Admins only. "
+        "Create a new country with a unique name and code.",
         responses={201: CountrySerializer},
     )
     def create(self, request, *args, **kwargs):
@@ -130,7 +141,8 @@ class CountryViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Update a country",
-        description="Admins only. Update the name or code of an existing country.",
+        description="Admins only. "
+        "Update the name or code of an existing country.",
         responses={200: CountrySerializer},
     )
     def update(self, request, *args, **kwargs):
@@ -150,6 +162,7 @@ class CityViewSet(ActionMixin, CustomPermissionMixin):
     Manage cities in the system. Admins can create/update/delete.
     Authenticated users can view list of cities and details.
     """
+
     queryset = City.objects.select_related("country")
     serializer_class = CitySerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
@@ -169,9 +182,9 @@ class CityViewSet(ActionMixin, CustomPermissionMixin):
     @extend_schema(
         summary="Get list of cities",
         description=(
-                "Return a list of cities.\n\n"
-                "- Supports search by name (case-insensitive)\n"
-                "- Filter by country ID (`country=1`)"
+            "Return a list of cities.\n\n"
+            "- Supports search by name (case-insensitive)\n"
+            "- Filter by country ID (`country=1`)"
         ),
         parameters=[
             OpenApiParameter(
@@ -202,7 +215,9 @@ class CityViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Create a city",
-        description="Admins only. Create a new city with a unique name in a specific country.",
+        description="Admins only. "
+        "Create a new city with a unique name "
+        "in a specific country.",
         responses={201: CitySerializer},
     )
     def create(self, request, *args, **kwargs):
@@ -210,7 +225,8 @@ class CityViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Update a city",
-        description="Admins only. Update the name or country of an existing city.",
+        description="Admins only. "
+        "Update the name or country of an existing city.",
         responses={200: CitySerializer},
     )
     def update(self, request, *args, **kwargs):
@@ -229,6 +245,7 @@ class CrewViewSet(ActionMixin, CustomPermissionMixin):
     """
     Manage crew members (pilots, stewardesses, etc). Admins only.
     """
+
     queryset = Crew.objects.all()
     serializer_class = CrewSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
@@ -271,7 +288,8 @@ class CrewViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Create a crew member",
-        description="Admins only. Add a new crew member with a name and position.",
+        description="Admins only. "
+        "Add a new crew member with a name and position.",
         responses={201: CrewSerializer},
     )
     def create(self, request, *args, **kwargs):
@@ -298,6 +316,7 @@ class AirportViewSet(ActionMixin, CustomPermissionMixin):
     """
     Manage airports. Authenticated users can view the list and detail.
     """
+
     queryset = Airport.objects.select_related("city", "city__country")
     serializer_class = AirportSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
@@ -317,10 +336,10 @@ class AirportViewSet(ActionMixin, CustomPermissionMixin):
     @extend_schema(
         summary="Get list of airports",
         description=(
-                "Return a list of airports.\n\n"
-                "- Search by name\n"
-                "- Filter by city ID (`city=3`)\n"
-                "- Filter by country ID of city (`city__country=2`)"
+            "Return a list of airports.\n\n"
+            "- Search by name\n"
+            "- Filter by city ID (`city=3`)\n"
+            "- Filter by country ID of city (`city__country=2`)"
         ),
         parameters=[
             OpenApiParameter(
@@ -412,10 +431,10 @@ class RouteViewSet(ActionMixin, CustomPermissionMixin):
     @extend_schema(
         summary="Get list of routes",
         description=(
-                "Return a list of flight routes between airports.\n\n"
-                "- Filter by source airport ID (`source=1`)\n"
-                "- Filter by destination airport ID (`destination=2`)\n"
-                "- Search by source or destination airport name"
+            "Return a list of flight routes between airports.\n\n"
+            "- Filter by source airport ID (`source=1`)\n"
+            "- Filter by destination airport ID (`destination=2`)\n"
+            "- Search by source or destination airport name"
         ),
         parameters=[
             OpenApiParameter(
@@ -453,9 +472,9 @@ class RouteViewSet(ActionMixin, CustomPermissionMixin):
     @extend_schema(
         summary="Create a route",
         description=(
-                "Admins only. Create a new flight route.\n"
-                "- Source and destination must be different\n"
-                "- Distance must be greater than 0"
+            "Admins only. Create a new flight route.\n"
+            "- Source and destination must be different\n"
+            "- Distance must be greater than 0"
         ),
         responses={201: RouteSerializer},
     )
@@ -484,6 +503,7 @@ class AirplaneTypeViewSet(ActionMixin, CustomPermissionMixin):
     Manage airplane types (e.g. Boeing 737, Airbus A320).
     Admins only.
     """
+
     queryset = AirplaneType.objects.all()
     serializer_class = AirplaneTypeSerializer
     filter_backends = [SearchFilter]
@@ -504,7 +524,8 @@ class AirplaneTypeViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Retrieve an airplane type",
-        description="Admins only. Get detailed info about an airplane type by ID.",
+        description="Admins only. "
+        "Get detailed info about an airplane type by ID.",
         responses={200: AirplaneTypeSerializer},
     )
     def retrieve(self, request, *args, **kwargs):
@@ -539,6 +560,7 @@ class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
     """
     Manage airplanes. Admins only.
     """
+
     queryset = Airplane.objects.select_related("airplane_type")
     serializer_class = AirplaneSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
@@ -548,7 +570,7 @@ class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
     action_serializers = {
         "list": AirplaneListSerializer,
         "retrieve": AirplaneRetrieveSerializer,
-        "upload_image": AirplaneImageSerializer
+        "upload_image": AirplaneImageSerializer,
     }
 
     action_permissions = {
@@ -558,19 +580,21 @@ class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Get list of airplanes",
-        description="Admins only. Return a list of airplanes. Filter by airplane type, search by name.",
+        description="Admins only. "
+        "Return a list of airplanes. "
+        "Filter by airplane type, search by name.",
         parameters=[
             OpenApiParameter(
                 name="search",
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="Search by airplane name. Example: Airbus A320"
+                description="Search by airplane name. Example: Airbus A320",
             ),
             OpenApiParameter(
                 name="airplane_type",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="Filter by airplane type ID. Example: 1"
+                description="Filter by airplane type ID. Example: 1",
             ),
         ],
         responses={200: AirplaneListSerializer(many=True)},
@@ -588,7 +612,8 @@ class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Create an airplane",
-        description="Admins only. Create a new airplane with its specifications.",
+        description="Admins only. "
+        "Create a new airplane with its specifications.",
         responses={201: AirplaneSerializer},
     )
     def create(self, request, *args, **kwargs):
@@ -620,7 +645,7 @@ class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
         methods=["POST"],
         detail=True,
         permission_classes=[IsAdminUser],
-        url_path="upload-image"
+        url_path="upload-image",
     )
     def upload_image(self, request, pk=None):
         bus = self.get_object()
@@ -628,7 +653,9 @@ class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class FlightViewSet(ActionMixin, CustomPermissionMixin):
@@ -637,6 +664,7 @@ class FlightViewSet(ActionMixin, CustomPermissionMixin):
     Public access to list and detail.
     Admins only for creation and updates.
     """
+
     queryset = Flight.objects.select_related(
         "route__source",
         "route__destination",
@@ -669,46 +697,47 @@ class FlightViewSet(ActionMixin, CustomPermissionMixin):
     @extend_schema(
         summary="Get list of flights",
         description=(
-                "Return a list of scheduled flights.\n\n"
-                "- Search by source/destination airport names\n"
-                "- Filter by route ID, airplane ID, active status, or date range"
+            "Return a list of scheduled flights.\n\n"
+            "- Search by source/destination airport names\n"
+            "- Filter by route ID, "
+            "airplane ID, active status, or date range"
         ),
         parameters=[
             OpenApiParameter(
                 name="search",
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="Search by airport name. Example: Heathrow"
+                description="Search by airport name. Example: Heathrow",
             ),
             OpenApiParameter(
                 name="route",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="Filter by route ID"
+                description="Filter by route ID",
             ),
             OpenApiParameter(
                 name="airplane",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="Filter by airplane ID"
+                description="Filter by airplane ID",
             ),
             OpenApiParameter(
                 name="is_active",
                 type=OpenApiTypes.BOOL,
                 location=OpenApiParameter.QUERY,
-                description="Filter by active status"
+                description="Filter by active status",
             ),
             OpenApiParameter(
                 name="departure_time",
                 type=OpenApiTypes.DATETIME,
                 location=OpenApiParameter.QUERY,
-                description="Filter flights that depart after this time"
+                description="Filter flights that depart after this time",
             ),
             OpenApiParameter(
                 name="arrival_time",
                 type=OpenApiTypes.DATETIME,
                 location=OpenApiParameter.QUERY,
-                description="Filter flights that arrive before this time"
+                description="Filter flights that arrive before this time",
             ),
         ],
         responses={200: FlightListSerializer(many=True)},
@@ -727,11 +756,12 @@ class FlightViewSet(ActionMixin, CustomPermissionMixin):
     @extend_schema(
         summary="Create a flight",
         description=(
-                "Admins only. Create a flight with:\n"
-                "- A valid route and airplane\n"
-                "- A crew that includes at least one main pilot and one stewardess\n"
-                "- Departure time must be before arrival time\n"
-                "- No overlapping flights for airplane or crew"
+            "Admins only. Create a flight with:\n"
+            "- A valid route and airplane\n"
+            "- A crew that includes at least "
+            "one main pilot and one stewardess\n"
+            "- Departure time must be before arrival time\n"
+            "- No overlapping flights for airplane or crew"
         ),
         responses={201: FlightSerializer},
     )
@@ -740,7 +770,8 @@ class FlightViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Update a flight",
-        description="Admins only. Update flight information and validate constraints.",
+        description="Admins only. "
+        "Update flight information and validate constraints.",
         responses={200: FlightSerializer},
     )
     def update(self, request, *args, **kwargs):
@@ -760,6 +791,7 @@ class OrderViewSet(ActionMixin, CustomPermissionMixin):
     Manage flight ticket orders.
     Authenticated users can view and create their orders.
     """
+
     queryset = Order.objects.prefetch_related("tickets")
     serializer_class = OrderSerializer
 
@@ -776,7 +808,8 @@ class OrderViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Get list of orders",
-        description="Return all orders for the authenticated user. Admins see all orders.",
+        description="Return all orders for the authenticated user. "
+        "Admins see all orders.",
         responses={200: OrderListSerializer(many=True)},
     )
     def list(self, request, *args, **kwargs):
@@ -784,7 +817,8 @@ class OrderViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Retrieve an order",
-        description="Return details of a specific order belonging to the authenticated user.",
+        description="Return details of a specific order"
+        " belonging to the authenticated user.",
         responses={200: OrderRetrieveSerializer},
     )
     def retrieve(self, request, *args, **kwargs):
@@ -793,10 +827,11 @@ class OrderViewSet(ActionMixin, CustomPermissionMixin):
     @extend_schema(
         summary="Create an order",
         description=(
-                "Create a new flight ticket order.\n"
-                "- The user is set automatically from the request.\n"
-                "- You must provide at least one ticket with `row`, `seat`, and `flight`.\n"
-                "- Validation will check if the seats are available."
+            "Create a new flight ticket order.\n"
+            "- The user is set automatically from the request.\n"
+            "- You must provide at least one ticket"
+            " with `row`, `seat`, and `flight`.\n"
+            "- Validation will check if the seats are available."
         ),
         request=OrderSerializer,
         responses={201: OrderSerializer},
@@ -806,7 +841,8 @@ class OrderViewSet(ActionMixin, CustomPermissionMixin):
 
     @extend_schema(
         summary="Update an order",
-        description="Admins only. Update an order and its tickets (not commonly used).",
+        description="Admins only. "
+        "Update an order and its tickets (not commonly used).",
         responses={200: OrderSerializer},
     )
     def update(self, request, *args, **kwargs):

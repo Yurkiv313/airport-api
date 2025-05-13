@@ -17,7 +17,9 @@ from airport_app.models import (
 
 
 class UniqueFieldsValidatorMixin:
-    def validate_unique_fields(self, model, unique_fields: dict, message: str, instance=None):
+    def validate_unique_fields(
+        self, model, unique_fields: dict, message: str, instance=None
+    ):
         if not unique_fields:
             return
 
@@ -44,7 +46,7 @@ class CountrySerializer(
                 Country,
                 {"name": data["name"]},
                 "Country with this name already exists.",
-                instance=instance
+                instance=instance,
             )
 
         if "code" in data:
@@ -52,7 +54,7 @@ class CountrySerializer(
                 Country,
                 {"code": data["code"]},
                 "Country with this code already exists.",
-                instance=instance
+                instance=instance,
             )
 
         return data
@@ -64,7 +66,9 @@ class CountryListSerializer(CountrySerializer):
         fields = ("id", "name")
 
 
-class CitySerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
+class CitySerializer(
+    UniqueFieldsValidatorMixin, serializers.ModelSerializer
+):
     class Meta:
         model = City
         fields = ("id", "name", "country")
@@ -76,7 +80,7 @@ class CitySerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
                 City,
                 {"name": data["name"], "country": data["country"]},
                 "City already exists.",
-                instance=instance
+                instance=instance,
             )
         return data
 
@@ -124,7 +128,7 @@ class AirportSerializer(
                 Airport,
                 {"name": data["name"], "city": data["city"]},
                 "Airport already exists.",
-                instance=instance
+                instance=instance,
             )
         return data
 
@@ -156,16 +160,23 @@ class RouteSerializer(
         if "source" in data and "destination" in data:
             self.validate_unique_fields(
                 Route,
-                {"source": data["source"], "destination": data["destination"]},
+                {
+                    "source": data["source"],
+                    "destination": data["destination"],
+                },
                 "Route already exists.",
-                instance=instance
+                instance=instance,
             )
 
         if data.get("source") == data.get("destination"):
-            raise serializers.ValidationError("Source and destination airports must be different.")
+            raise serializers.ValidationError(
+                "Source and destination airports must be different."
+            )
 
         if data.get("distance") <= 0:
-            raise serializers.ValidationError("Distance must be greater than 0 kilometers.")
+            raise serializers.ValidationError(
+                "Distance must be greater than 0 kilometers."
+            )
 
         return data
 
@@ -207,9 +218,12 @@ class AirplaneSerializer(
         if "name" in data and "airplane_type" in data:
             self.validate_unique_fields(
                 Airplane,
-                {"name": data["name"], "airplane_type": data["airplane_type"]},
+                {
+                    "name": data["name"],
+                    "airplane_type": data["airplane_type"],
+                },
                 "Airplane already exists.",
-                instance=instance
+                instance=instance,
             )
         return data
 
@@ -238,7 +252,7 @@ class AirplaneRetrieveSerializer(AirplaneSerializer):
             "capacity",
             "is_large",
             "airplane_type",
-            "image"
+            "image",
         )
         read_only_fields = ("capacity", "is_large")
 
@@ -309,7 +323,8 @@ class FlightSerializer(serializers.ModelSerializer):
 
             if overlapping_flights.exists():
                 raise serializers.ValidationError(
-                    f"{obj_type} {obj} is already scheduled for another flight during this time."
+                    f"{obj_type} {obj} is already scheduled "
+                    f"for another flight during this time."
                 )
 
         for crew_member in crew:

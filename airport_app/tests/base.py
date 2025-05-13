@@ -163,7 +163,7 @@ def sample_flight(
     flight = Flight.objects.create(
         route=route,
         airplane=airplane,
-        departure_time=timezone.now(),
+        departure_time=timezone.now() + timezone.timedelta(hours=1),
         arrival_time=timezone.now() + timezone.timedelta(hours=2),
         is_active=True
     )

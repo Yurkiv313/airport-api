@@ -256,7 +256,6 @@ class AuthenticatedTests(BaseApiTestCase):
 
     def test_create_order(self):
         flight = sample_flight()
-
         payload = {
             "tickets": [
                 {"flight": flight.id, "row": 1, "seat": 1},

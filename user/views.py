@@ -16,7 +16,8 @@ class CreateUserView(generics.CreateAPIView):
 
     @extend_schema(
         summary="Register a new user",
-        description="Create a new user account. Requires email and password (min. 5 characters).",
+        description="Create a new user account. "
+                    "Requires email and password (min. 5 characters).",
         request=UserSerializer,
         responses={201: UserSerializer},
     )
@@ -42,7 +43,8 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 
     @extend_schema(
         summary="Partially update current user",
-        description="Update one or more fields (email or password) of the current user.",
+        description="Update one or more fields "
+                    "(email or password) of the current user.",
         request=UserSerializer,
         responses={200: UserSerializer},
     )
@@ -51,7 +53,8 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 
     @extend_schema(
         summary="Fully update current user",
-        description="Overwrite all fields (email and password) of the current user.",
+        description="Overwrite all fields "
+                    "(email and password) of the current user.",
         request=UserSerializer,
         responses={200: UserSerializer},
     )
@@ -64,8 +67,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
 
         Flight.objects.filter(
-            is_active=True,
-            departure_time__lt=timezone.now()
+            is_active=True, departure_time__lt=timezone.now()
         ).update(is_active=False)
 
         return data
