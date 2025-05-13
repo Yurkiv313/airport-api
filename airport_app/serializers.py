@@ -16,10 +16,15 @@ from airport_app.models import (
 
 
 class UniqueFieldsValidatorMixin:
-    def validate_unique_fields(
-            self, model, unique_fields: dict, message: str
-    ):
-        if model.objects.filter(**unique_fields).exists():
+    def validate_unique_fields(self, model, unique_fields: dict, message: str, instance=None):
+        if not unique_fields:
+            return
+
+        queryset = model.objects.filter(**unique_fields)
+        if instance is not None:
+            queryset = queryset.exclude(pk=instance.pk)
+
+        if queryset.exists():
             raise serializers.ValidationError(message)
 
 
@@ -31,16 +36,24 @@ class CountrySerializer(
         fields = ("id", "name", "code")
 
     def validate(self, data):
-        self.validate_unique_fields(
-            Country,
-            {"name": data["name"]},
-            "Country with this name or code already exists.",
-        )
-        self.validate_unique_fields(
-            Country,
-            {"code": data["code"]},
-            "Country with this code already exists.",
-        )
+        instance = self.instance
+
+        if "name" in data:
+            self.validate_unique_fields(
+                Country,
+                {"name": data["name"]},
+                "Country with this name already exists.",
+                instance=instance
+            )
+
+        if "code" in data:
+            self.validate_unique_fields(
+                Country,
+                {"code": data["code"]},
+                "Country with this code already exists.",
+                instance=instance
+            )
+
         return data
 
 
@@ -56,11 +69,14 @@ class CitySerializer(UniqueFieldsValidatorMixin, serializers.ModelSerializer):
         fields = ("id", "name", "country")
 
     def validate(self, data):
-        self.validate_unique_fields(
-            City,
-            {"name": data["name"], "country": data["country"]},
-            "City already exists.",
-        )
+        instance = self.instance
+        if "name" in data and "country" in data:
+            self.validate_unique_fields(
+                City,
+                {"name": data["name"], "country": data["country"]},
+                "City already exists.",
+                instance=instance
+            )
         return data
 
 
@@ -101,11 +117,14 @@ class AirportSerializer(
         fields = ("id", "name", "city")
 
     def validate(self, data):
-        self.validate_unique_fields(
-            Airport,
-            {"name": data["name"], "city": data["city"]},
-            "Airport already exists.",
-        )
+        instance = self.instance
+        if "name" in data and "city" in data:
+            self.validate_unique_fields(
+                Airport,
+                {"name": data["name"], "city": data["city"]},
+                "Airport already exists.",
+                instance=instance
+            )
         return data
 
 
@@ -132,19 +151,21 @@ class RouteSerializer(
         fields = ("id", "source", "destination", "distance")
 
     def validate(self, data):
-        if data["source"] == data["destination"]:
-            raise serializers.ValidationError(
-                "Source and destination airports must be different."
+        instance = self.instance
+        if "source" in data and "destination" in data:
+            self.validate_unique_fields(
+                Route,
+                {"source": data["source"], "destination": data["destination"]},
+                "Route already exists.",
+                instance=instance
             )
-        elif data["distance"] <= 0:
-            raise serializers.ValidationError(
-                "Distance must be greater than 0 kilometers."
-            )
-        self.validate_unique_fields(
-            Route,
-            {"source": data["source"], "destination": data["destination"]},
-            "Route already exists.",
-        )
+
+        if data.get("source") == data.get("destination"):
+            raise serializers.ValidationError("Source and destination airports must be different.")
+
+        if data.get("distance") <= 0:
+            raise serializers.ValidationError("Distance must be greater than 0 kilometers.")
+
         return data
 
 
@@ -181,11 +202,14 @@ class AirplaneSerializer(
         read_only_fields = ("capacity", "is_large")
 
     def validate(self, data):
-        self.validate_unique_fields(
-            Airplane,
-            {"name": data["name"], "airplane_type": data["airplane_type"]},
-            "Airplane already exists.",
-        )
+        instance = self.instance
+        if "name" in data and "airplane_type" in data:
+            self.validate_unique_fields(
+                Airplane,
+                {"name": data["name"], "airplane_type": data["airplane_type"]},
+                "Airplane already exists.",
+                instance=instance
+            )
         return data
 
 
@@ -202,6 +226,20 @@ class AirplaneListSerializer(AirplaneSerializer):
 
 class AirplaneRetrieveSerializer(AirplaneSerializer):
     airplane_type = AirplaneTypeSerializer()
+
+    class Meta:
+        model = Airplane
+        fields = (
+            "id",
+            "name",
+            "rows",
+            "seats_in_row",
+            "capacity",
+            "is_large",
+            "airplane_type",
+            "image"
+        )
+        read_only_fields = ("capacity", "is_large")
 
 
 class AirplaneImageSerializer(serializers.ModelSerializer):
