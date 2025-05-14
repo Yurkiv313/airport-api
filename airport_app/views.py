@@ -561,7 +561,7 @@ class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
     Manage airplanes. Admins only.
     """
 
-    queryset = Airplane.objects.select_related("airplane_type")
+    queryset = Airplane.objects.select_related("airplane_type").order_by("id")
     serializer_class = AirplaneSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend]
     filterset_fields = ["airplane_type"]
@@ -648,8 +648,8 @@ class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
         url_path="upload-image",
     )
     def upload_image(self, request, pk=None):
-        bus = self.get_object()
-        serializer = self.get_serializer(bus, data=request.data)
+        airplane = self.get_object()
+        serializer = self.get_serializer(airplane, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
