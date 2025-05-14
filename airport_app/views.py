@@ -638,7 +638,17 @@ class AirplaneViewSet(ActionMixin, CustomPermissionMixin):
     @extend_schema(
         summary="Upload airplane image",
         description="Admins only. Upload an image for the selected airplane.",
-        request=AirplaneImageSerializer,
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "image": {
+                        "type": "string",
+                        "format": "binary"
+                    }
+                }
+            }
+        },
         responses={200: AirplaneImageSerializer},
     )
     @action(
