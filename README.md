@@ -209,8 +209,8 @@ docker rm airport-api
 * **Easy API Exploration:** Swagger and Redoc for rapid testing and integration.
 
 ---
-![1](https://github.com/user-attachments/assets/cc8347e7-87c4-4b8a-b883-6272097eb586)
 
+<img width="650" alt="airport" src="https://github.com/user-attachments/assets/7e081d28-c51b-4097-8e09-c6e8ef19babd" />
 
 
 
