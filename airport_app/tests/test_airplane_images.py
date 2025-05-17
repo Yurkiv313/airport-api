@@ -67,7 +67,6 @@ class AdminAirplaneImageTests(BaseApiTestCase):
         )
         self.assertIn("image", res.data)
 
-    # Flight Admin Tests
     def test_create_flight(self):
         route = sample_route()
         airplane_type = sample_airplane_type(name="Airbus A320")

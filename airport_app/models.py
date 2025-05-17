@@ -1,10 +1,8 @@
-import pathlib
-import uuid
-
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils.text import slugify
+
+from airport_app.utils.helpers import airplane_image_path
 
 User = get_user_model()
 
@@ -112,14 +110,6 @@ class AirplaneType(models.Model):
 
     def __str__(self):
         return self.name
-
-
-def airplane_image_path(instance, filename) -> pathlib.Path:
-    filename = (
-        f"{slugify(instance.name)}-{uuid.uuid4()}"
-        + pathlib.Path(filename).suffix
-    )
-    return pathlib.Path("upload/airplanes/") / pathlib.Path(filename)
 
 
 class Airplane(models.Model):

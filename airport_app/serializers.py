@@ -2,6 +2,8 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 from django.core.exceptions import ValidationError as DRFValidationError
+
+from airport_app.utils.mixins import UniqueFieldsValidatorMixin
 from airport_app.models import (
     Country,
     City,
@@ -16,23 +18,9 @@ from airport_app.models import (
 )
 
 
-class UniqueFieldsValidatorMixin:
-    def validate_unique_fields(
-        self, model, unique_fields: dict, message: str, instance=None
-    ):
-        if not unique_fields:
-            return
-
-        queryset = model.objects.filter(**unique_fields)
-        if instance is not None:
-            queryset = queryset.exclude(pk=instance.pk)
-
-        if queryset.exists():
-            raise serializers.ValidationError(message)
-
-
 class CountrySerializer(
-    UniqueFieldsValidatorMixin, serializers.ModelSerializer
+    UniqueFieldsValidatorMixin,
+    serializers.ModelSerializer
 ):
     class Meta:
         model = Country

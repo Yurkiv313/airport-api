@@ -4,6 +4,7 @@ from faker import Faker
 import random
 from datetime import timedelta
 
+from django.apps import apps
 from airport_app.models import (
     Country,
     City,
@@ -17,22 +18,29 @@ from airport_app.models import (
 
 fake = Faker()
 
+MODELS = [
+    "Country",
+    "City",
+    "Crew",
+    "Route",
+    "AirplaneType",
+    "Airplane",
+    "Flight",
+    "Ticket",
+    "Order",
+    "Airport",
+]
+
 
 class Command(BaseCommand):
     help = "Populate the database with test data"
 
     def handle(self, *args, **options):
-        # Очищення таблиць перед створенням нових записів
-        Country.objects.all().delete()
-        City.objects.all().delete()
-        Airport.objects.all().delete()
-        Crew.objects.all().delete()
-        Route.objects.all().delete()
-        AirplaneType.objects.all().delete()
-        Airplane.objects.all().delete()
-        Flight.objects.all().delete()
+        for model_name in MODELS:
+            model = apps.get_model("airport_app", model_name)
+            model.objects.all().delete()
+            self.stdout.write(f"Deleted all {model_name} objects.")
 
-        # Створення країн, міст і аеропортів
         countries = [
             {"name": "Ukraine", "code": "UKR", "cities": ["Kyiv", "Lviv"]},
             {
@@ -60,7 +68,6 @@ class Command(BaseCommand):
                 )
                 airports.append(airport)
 
-        # Створення типів літаків
         airplane_types = []
         for name in [
             "Boeing 737",
@@ -72,7 +79,6 @@ class Command(BaseCommand):
             airplane_type = AirplaneType.objects.create(name=name)
             airplane_types.append(airplane_type)
 
-        # Створення літаків
         airplanes = []
         for airplane_type in airplane_types:
             for _ in range(2):
@@ -84,7 +90,6 @@ class Command(BaseCommand):
                 )
                 airplanes.append(airplane)
 
-        # Створення екіпажу (по 3 людини кожної позиції)
         main_pilots = [
             Crew.objects.create(
                 first_name=fake.first_name(),
@@ -126,7 +131,6 @@ class Command(BaseCommand):
             for _ in range(3)
         ]
 
-        # Створення маршрутів
         routes = []
         for _ in range(9):
             source, destination = random.sample(airports, 2)
@@ -136,7 +140,6 @@ class Command(BaseCommand):
             )
             routes.append(route)
 
-        # Створення рейсів (9 штук)
         for i in range(9):
             route = routes[i]
             airplane = airplanes[i % len(airplanes)]
@@ -147,7 +150,6 @@ class Command(BaseCommand):
                 hours=random.randint(2, 10)
             )
 
-            # Призначаємо екіпажі (по одному з кожної групи)
             flight = Flight.objects.create(
                 route=route,
                 airplane=airplane,

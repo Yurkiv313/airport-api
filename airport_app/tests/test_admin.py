@@ -328,7 +328,6 @@ class AdminTests(BaseApiTestCase):
         res = self.client.put(url, payload)
         self.assertEquals(res.status_code, status.HTTP_400_BAD_REQUEST)
 
-    # Flight Tests
     def test_flight_crud(self):
         route = sample_route()
         airplane_type = sample_airplane_type(name="Airbus A320")
